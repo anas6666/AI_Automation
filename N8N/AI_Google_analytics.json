@@ -1,0 +1,1096 @@
+{
+  "name": "AI Google analytics",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Génère un résumé structuré au format HTML basé sur les données suivantes. La sortie doit être propre, bien formatée et lisible avec des titres, des sections claire et des insights détaillés en bas du rapport.\nUtiliser uniquement les balises suivantes : <b>\n\net supprimer <!DOCTYPE html>, <html>, <head>, <meta>, <title>, <body>, <h3>, <h2>, <h1>, <ul>, <div>,  <code>, <pre>, <li>, <br>, <i>, <a>, <u>.\n\nDonnées d'entrée :\nSomme de Nombre des Utilisateurs : [Nombre total d’utilisateurs]\n\nNouveaux utilisateurs : [Nombre] ([Pourcentage]%)\nUtilisateurs récurrents : [Nombre] ([Pourcentage]%)\n\nTop 5 pays par Nombre d'Utilisateurs\n\n[pays 1] : [Nombre] utilisateurs\n[pays 2] : [Nombre] utilisateurs\n[pays 3] : [Nombre] utilisateurs\n[pays 4] : [Nombre] utilisateurs\n[pays 5] : [Nombre] utilisateurs\n\nTop 5 Villes par Nombre d'Utilisateurs\n\n[Ville 1] : [Nombre] utilisateurs\n[Ville 2] : [Nombre] utilisateurs\n[Ville 3] : [Nombre] utilisateurs\n[Ville 4] : [Nombre] utilisateurs\n[Ville 5] : [Nombre] utilisateurs\nRépartition de l'Utilisation des Appareils\n\nMobile : [Nombre] utilisateurs ([Pourcentage]%)\nDesktop : [Nombre] utilisateurs ([Pourcentage]%)\nPages de Destination les Plus Visitées\n\n[URL 1] : [Nombre] utilisateurs ([Pourcentage]%)\n[URL 2] : [Nombre] utilisateurs ([Pourcentage]%)\nRépartition des Sources de Trafic\n\nDirect : [Nombre] utilisateurs ([Pourcentage]%)\nOrganique : [Nombre] utilisateurs ([Pourcentage]%)\nRéférents : [Nombre] utilisateurs ([Pourcentage]%)\nRéseaux sociaux : [Nombre] utilisateurs ([Pourcentage]%)\nTop Sites Référents\n\n[Site 1] : [Nombre] utilisateurs\n[Site 2] : [Nombre] utilisateurs\n[Site 3] : [Nombre] utilisateurs\n[Site 4] : [Nombre] utilisateurs\n[Site 5] : [Nombre] utilisateurs\n\nRépartition de l'Activité par Période de l'heur :   \nMatin (05h-12h) :  utilisateurs ([Pourcentage]%)\nAprès-midi (12h-18h) :  utilisateurs ([Pourcentage]%)\nSoirée & Nuit (18h-05h) : utilisateurs ([Pourcentage]%)\n\n\nInsights Clés\n\nAudience : Analyse des villes principales et leur impact sur la stratégie de ciblage.\nAppareils : Importance des plateformes mobiles ou desktop selon les chiffres.\nNouveaux Utilisateurs : Indicateurs de croissance et fidélisation.\nTrafic : Répartition des sources de visiteurs et recommandations SEO.\nPages de Destination : Impact des pages les plus consultées et suggestions pour améliorer l’engagement.\nOrdre les donnés da chque liste par le plus grand au petite nombre d'utilsateur\nNe pas ajouter de commentaires inutiles ou de données négatives. Si certaines informations sont manquantes, les ignorer sans mentionner leur absence.\n\nGénère la sortie sous forme d'un document HTML clair et structuré, sans texte superflu.\n\nUse the following fields:\n{{ $json.deviceCategoryAggregation[0] }}\n{{ $json.newVsReturningAggregation[0] }}\n{{ $json.cityAggregation[0] }}\n{{ $json.hourAggregation[0] }}\n{{ $json.sessionSourceAggregation[0] }}\n{{ $json.pageLocationAggregation[0] }}\n{{ $json.countryAggregation }}\n\nThis is the number total of users for the day : {{ $json['total '] }}\n\nle titre sera de cette raport cera comme ca : 'Analyse Quotidienne Voiturevue :{{ $now.minus({ days: 1 }).format('yyyy-MM-dd') }}\nOutput format: Bullet points, clear percentages, structured insights.\nDont exced 4000 in length for telegram\n\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        1980,
+        620
+      ],
+      "id": "947762b8-6a3e-4053-95f5-212419e84bbc",
+      "name": "Basic LLM Chain",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2060,
+        860
+      ],
+      "id": "267e7558-e5f0-4682-a9ba-4034993ed91b",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "chatId": "8173455106",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2340,
+        620
+      ],
+      "id": "04203e71-f243-4415-99df-d3dec38cd325",
+      "name": "Telegram1",
+      "webhookId": "d5642387-f0e9-44a0-a5f8-b630ba204050"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -440,
+        560
+      ],
+      "id": "68232081-c8aa-4d29-b8c2-b7a66cbe56e6",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst deviceCategoryAggregation = {};\n\n// First, aggregate users by category\nitems.forEach(item => {\n    const category = item.json.deviceCategory;\n    const users = parseInt(item.json.totalUsers) || 0;\n\n    if (category) {\n        deviceCategoryAggregation[category] = (deviceCategoryAggregation[category] || 0) + users;\n    }\n});\n\n// Calculate the total number of users\nconst totalUsers = Object.values(deviceCategoryAggregation).reduce((sum, users) => sum + users, 0);\n\n// Calculate percentage for each category\nconst deviceCategoryPercentage = {};\nfor (const category in deviceCategoryAggregation) {\n    const categoryUsers = deviceCategoryAggregation[category];\n    deviceCategoryPercentage[category] = ((categoryUsers / totalUsers) * 100).toFixed(2); // Rounded to 2 decimal places\n}\n\nreturn { json: { deviceCategoryAggregation, deviceCategoryPercentage } };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        940
+      ],
+      "id": "761a6c63-435c-48c3-aa85-8e95387c2503",
+      "name": "Device Category"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst newVsReturningAggregation = {};\n\nitems.forEach(item => {\n    const type = item.json.newVsReturning;\n    const users = parseInt(item.json.totalUsers) || 0;\n\n    if (type) {\n        newVsReturningAggregation[type] = (newVsReturningAggregation[type] || 0) + users;\n    }\n});\n\nreturn { json: { newVsReturningAggregation } };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        1140
+      ],
+      "id": "c94ccf22-85ba-4136-ad31-6cc695aeb70f",
+      "name": "New vs. Returning Users"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst cityAggregation = {};\n\nitems.forEach(item => {\n    const city = item.json.city;\n    const users = parseInt(item.json.totalUsers) || 0;\n\n    if (city) {\n        cityAggregation[city] = (cityAggregation[city] || 0) + users;\n    }\n});\n\nreturn { json: { cityAggregation } };\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ],
+      "id": "9074f776-6617-407b-9f77-93152b3c6f0d",
+      "name": "city"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst sessionSourceAggregation = {};\n\nitems.forEach(item => {\n    const source = item.json.sessionManualSourceMedium;\n    const users = parseInt(item.json.totalUsers) || 0;\n\n    if (source) {\n        sessionSourceAggregation[source] = (sessionSourceAggregation[source] || 0) + users;\n    }\n});\n\nreturn { json: { sessionSourceAggregation } };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        380,
+        720
+      ],
+      "id": "e91717d0-1d43-41e2-8f79-4586ac8cf1c8",
+      "name": "Session Source/Medium"
+    },
+    {
+      "parameters": {
+        "numberInputs": 8
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1100,
+        520
+      ],
+      "id": "2051bda4-5357-4d20-ae40-53b00ad8edb6",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "totalUsersSum"
+            },
+            {
+              "fieldToAggregate": "deviceCategoryAggregation"
+            },
+            {
+              "fieldToAggregate": "newVsReturningAggregation"
+            },
+            {
+              "fieldToAggregate": "cityAggregation"
+            },
+            {
+              "fieldToAggregate": "hourAggregation"
+            },
+            {
+              "fieldToAggregate": "pageLocationAggregation"
+            },
+            {
+              "fieldToAggregate": "sessionSourceAggregation"
+            },
+            {
+              "fieldToAggregate": "countryAggregation"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        620
+      ],
+      "id": "db2b0221-a906-4b46-8127-13e3c67b2a40",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        620
+      ],
+      "id": "cdcd63cb-2b51-47dc-ada7-e894ef63f651",
+      "name": "Wait",
+      "webhookId": "9efc1e86-03e0-424e-b293-073026e08ede"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "93b6719f-033e-4cb4-862d-c68cfaa71891",
+              "name": "total ",
+              "value": "={{ $json.totalUsersSum[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "26ffdebc-632b-4d22-853b-2209137c2282",
+              "name": "deviceCategoryAggregation[0]",
+              "value": "={{ $json.deviceCategoryAggregation[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "bc120405-eedf-4d5f-ad46-73151bc45db1",
+              "name": "newVsReturningAggregation[0]",
+              "value": "={{ $json.newVsReturningAggregation[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "817899b0-8178-48c7-9f72-46cca2be4a35",
+              "name": "cityAggregation[0]",
+              "value": "={{ $json.cityAggregation[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "5e02d624-8589-454f-89ae-09b1f26420bd",
+              "name": "hourAggregation[0]",
+              "value": "={{ $json.hourAggregation[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "778c6ffc-2a08-4116-bf6e-279c609f6a32",
+              "name": "pageLocationAggregation[0]",
+              "value": "={{ $json.pageLocationAggregation[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "36a70e66-d0fc-4724-a52e-ddfa4f71b973",
+              "name": "sessionSourceAggregation[0]",
+              "value": "={{ $json.sessionSourceAggregation[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "8261e931-c8c1-4f17-8faa-0692e7e2c107",
+              "name": "countryAggregation",
+              "value": "={{ $json.countryAggregation }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1800,
+        620
+      ],
+      "id": "cb42082f-43d6-4409-89b3-947f59e3a5fa",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "propertyId": {
+          "__rl": true,
+          "value": "439769310",
+          "mode": "list",
+          "cachedResultName": "IFCAR-JOBS",
+          "cachedResultUrl": "https://analytics.google.com/analytics/web/#/p439769310/"
+        },
+        "dateRange": "yesterday",
+        "metricsGA4": {
+          "metricValues": [
+            {}
+          ]
+        },
+        "dimensionsGA4": {
+          "dimensionValues": [
+            {},
+            {
+              "listName": "country"
+            }
+          ]
+        },
+        "returnAll": true,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleAnalytics",
+      "typeVersion": 2,
+      "position": [
+        0,
+        500
+      ],
+      "id": "176d966e-3a37-4983-85be-dd9b8d140fdb",
+      "name": "Google Analytics1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input data (assuming it comes from the previous node)\nconst items = $input.all();\n\n// Filter the data to exclude rows where the country is 'USA' or 'Canada'\nconst filteredData = items.filter(item => {\n    const country = item.json.country;\n    return country !== \"United States\" && country !== \"Canada\"; // Exclude USA and Canada\n});\n\n// Return the filtered data\nreturn filteredData.map(item => ({\n    json: item.json\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        180,
+        500
+      ],
+      "id": "2e2b5c87-c3a3-41e9-ac62-3a2d4e6a3431",
+      "name": "Filter City1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input data from previous node\nconst items = $input.all();\n\n// Calculate the total sum of users\nconst totalUsersSum = items.reduce((sum, item) => {\n    return sum + (parseInt(item.json.totalUsers) || 0);\n}, 0);\n\n// Return the total sum as JSON\nreturn { json: { totalUsersSum } };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        380,
+        500
+      ],
+      "id": "fdac9bb4-a6f7-4989-80ae-fc95c2e3a0b8",
+      "name": "Sum of users1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input data (assuming it comes from the previous node)\nconst items = $input.all();\n\n// Filter the data to exclude rows where the country is 'USA' or 'Canada'\nconst filteredData = items.filter(item => {\n    const country = item.json.country;\n    return country !== \"United States\" && country !== \"Canada\"; // Exclude USA and Canada\n});\n\n// Return the filtered data\nreturn filteredData.map(item => ({\n    json: item.json\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        180,
+        720
+      ],
+      "id": "2aa20352-09e9-437d-937e-e7af7f258560",
+      "name": "Filter City2"
+    },
+    {
+      "parameters": {
+        "propertyId": {
+          "__rl": true,
+          "value": "439769310",
+          "mode": "list",
+          "cachedResultName": "IFCAR-JOBS",
+          "cachedResultUrl": "https://analytics.google.com/analytics/web/#/p439769310/"
+        },
+        "dateRange": "yesterday",
+        "metricsGA4": {
+          "metricValues": [
+            {}
+          ]
+        },
+        "dimensionsGA4": {
+          "dimensionValues": [
+            {
+              "listName": "other",
+              "name": "sessionManualSourceMedium"
+            },
+            {
+              "listName": "country"
+            }
+          ]
+        },
+        "returnAll": true,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleAnalytics",
+      "typeVersion": 2,
+      "position": [
+        0,
+        720
+      ],
+      "id": "9a141daa-f2b5-4006-897e-7ea0f2b3a946",
+      "name": "Google Analytics2",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "propertyId": {
+          "__rl": true,
+          "value": "439769310",
+          "mode": "list",
+          "cachedResultName": "IFCAR-JOBS",
+          "cachedResultUrl": "https://analytics.google.com/analytics/web/#/p439769310/"
+        },
+        "dateRange": "yesterday",
+        "metricsGA4": {
+          "metricValues": [
+            {}
+          ]
+        },
+        "dimensionsGA4": {
+          "dimensionValues": [
+            {
+              "listName": "deviceCategory"
+            },
+            {
+              "listName": "country"
+            }
+          ]
+        },
+        "returnAll": true,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleAnalytics",
+      "typeVersion": 2,
+      "position": [
+        0,
+        940
+      ],
+      "id": "da1eaaca-4399-43ca-9aca-1d77c388b8c9",
+      "name": "Google Analytics3",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input data (assuming it comes from the previous node)\nconst items = $input.all();\n\n// Filter the data to exclude rows where the country is 'USA' or 'Canada'\nconst filteredData = items.filter(item => {\n    const country = item.json.country;\n    return country !== \"United States\" && country !== \"Canada\"; // Exclude USA and Canada\n});\n\n// Return the filtered data\nreturn filteredData.map(item => ({\n    json: item.json\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        940
+      ],
+      "id": "6ec973b8-3ae7-4a42-8d80-a1492824d0d6",
+      "name": "Filter City3"
+    },
+    {
+      "parameters": {
+        "propertyId": {
+          "__rl": true,
+          "value": "439769310",
+          "mode": "list",
+          "cachedResultName": "IFCAR-JOBS",
+          "cachedResultUrl": "https://analytics.google.com/analytics/web/#/p439769310/"
+        },
+        "dateRange": "yesterday",
+        "metricsGA4": {
+          "metricValues": [
+            {}
+          ]
+        },
+        "dimensionsGA4": {
+          "dimensionValues": [
+            {
+              "listName": "other",
+              "name": "newVsReturning"
+            },
+            {
+              "listName": "country"
+            }
+          ]
+        },
+        "returnAll": true,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleAnalytics",
+      "typeVersion": 2,
+      "position": [
+        0,
+        1140
+      ],
+      "id": "03f4e6d9-d9f2-4700-9329-e3c3209bccce",
+      "name": "Google Analytics4",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input data (assuming it comes from the previous node)\nconst items = $input.all();\n\n// Filter the data to exclude rows where the country is 'USA' or 'Canada'\nconst filteredData = items.filter(item => {\n    const country = item.json.country;\n    return country !== \"United States\" && country !== \"Canada\"; // Exclude USA and Canada\n});\n\n// Return the filtered data\nreturn filteredData.map(item => ({\n    json: item.json\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        1140
+      ],
+      "id": "3b9e8ad9-b674-43df-992c-02e59954423e",
+      "name": "Filter City4"
+    },
+    {
+      "parameters": {
+        "propertyId": {
+          "__rl": true,
+          "value": "439769310",
+          "mode": "list",
+          "cachedResultName": "IFCAR-JOBS",
+          "cachedResultUrl": "https://analytics.google.com/analytics/web/#/p439769310/"
+        },
+        "dateRange": "yesterday",
+        "metricsGA4": {
+          "metricValues": [
+            {}
+          ]
+        },
+        "dimensionsGA4": {
+          "dimensionValues": [
+            {
+              "listName": "pageLocation"
+            },
+            {
+              "listName": "country"
+            }
+          ]
+        },
+        "returnAll": true,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleAnalytics",
+      "typeVersion": 2,
+      "position": [
+        0,
+        320
+      ],
+      "id": "a403398d-dbb8-4e7e-84b1-69003b0f9522",
+      "name": "Google Analytics5",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "propertyId": {
+          "__rl": true,
+          "value": "439769310",
+          "mode": "list",
+          "cachedResultName": "IFCAR-JOBS",
+          "cachedResultUrl": "https://analytics.google.com/analytics/web/#/p439769310/"
+        },
+        "dateRange": "yesterday",
+        "metricsGA4": {
+          "metricValues": [
+            {}
+          ]
+        },
+        "dimensionsGA4": {
+          "dimensionValues": [
+            {
+              "listName": "city"
+            },
+            {
+              "listName": "country"
+            }
+          ]
+        },
+        "returnAll": true,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleAnalytics",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f1e5e02c-29fa-46ae-ae7f-abadd3812d06",
+      "name": "Google Analytics6",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "propertyId": {
+          "__rl": true,
+          "value": "439769310",
+          "mode": "list",
+          "cachedResultName": "IFCAR-JOBS",
+          "cachedResultUrl": "https://analytics.google.com/analytics/web/#/p439769310/"
+        },
+        "dateRange": "yesterday",
+        "metricsGA4": {
+          "metricValues": [
+            {}
+          ]
+        },
+        "dimensionsGA4": {
+          "dimensionValues": [
+            {
+              "listName": "country"
+            }
+          ]
+        },
+        "returnAll": true,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleAnalytics",
+      "typeVersion": 2,
+      "position": [
+        0,
+        160
+      ],
+      "id": "bdec9eb7-6911-47cc-9936-711bb9dcb038",
+      "name": "Google Analytics7",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "propertyId": {
+          "__rl": true,
+          "value": "439769310",
+          "mode": "list",
+          "cachedResultName": "IFCAR-JOBS",
+          "cachedResultUrl": "https://analytics.google.com/analytics/web/#/p439769310/"
+        },
+        "dateRange": "yesterday",
+        "metricsGA4": {
+          "metricValues": [
+            {}
+          ]
+        },
+        "dimensionsGA4": {
+          "dimensionValues": [
+            {
+              "listName": "other",
+              "name": "hour"
+            },
+            {
+              "listName": "country"
+            }
+          ]
+        },
+        "returnAll": true,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleAnalytics",
+      "typeVersion": 2,
+      "position": [
+        0,
+        1320
+      ],
+      "id": "ac8ce4fa-e3bc-4db4-8b04-e4b84940bdc6",
+      "name": "Google Analytics8",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input data (assuming it comes from the previous node)\nconst items = $input.all();\n\n// Filter the data to exclude rows where the country is 'USA' or 'Canada'\nconst filteredData = items.filter(item => {\n    const country = item.json.country;\n    return country !== \"United States\" && country !== \"Canada\"; // Exclude USA and Canada\n});\n\n// Return the filtered data\nreturn filteredData.map(item => ({\n    json: item.json\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        1320
+      ],
+      "id": "8d2c848c-0534-40d6-bfbb-d017b14db146",
+      "name": "Filter City5"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst hourAggregation = {\n    Night: 0,\n    Morning: 0,\n    Afternoon: 0\n};\n\n// Helper function to determine the time segment\nfunction getHourCategory(hour) {\n    if (hour >= 5 && hour < 12) return \"Morning\";  // 05h - 12h\n    if (hour >= 12 && hour < 18) return \"Afternoon\"; // 12h - 18h\n    return \"Night\"; // 18h - 05h\n}\n\n// First, aggregate users by hour category\nitems.forEach(item => {\n    const hour = parseInt(item.json.hour) || 0;\n    const users = parseInt(item.json.totalUsers) || 0;\n    \n    const category = getHourCategory(hour);\n    hourAggregation[category] += users;\n});\n\n// Calculate the total number of users\nconst totalHourUsers = Object.values(hourAggregation).reduce((sum, users) => sum + users, 0);\n\n// Calculate percentage for each time category\nconst hourCategoryPercentage = {};\nfor (const category in hourAggregation) {\n    const categoryUsers = hourAggregation[category];\n    hourCategoryPercentage[category] = ((categoryUsers / totalHourUsers) * 100).toFixed(2); // Rounded to 2 decimal places\n}\n\nreturn { json: { hourAggregation, hourCategoryPercentage } };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        1320
+      ],
+      "id": "74788c9a-b4ea-4fd6-9d4c-a2c48a5955fb",
+      "name": "Hour1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input data (assuming it comes from the previous node)\nconst items = $input.all();\n\n// Filter the data to exclude rows where the country is 'USA' or 'Canada'\nconst filteredData = items.filter(item => {\n    const country = item.json.country;\n    return country !== \"United States\" && country !== \"Canada\"; // Exclude USA and Canada\n});\n\n// Return the filtered data\nreturn filteredData.map(item => ({\n    json: item.json\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        320
+      ],
+      "id": "7aa50f53-f53f-4832-b35f-8f6183d13883",
+      "name": "Filter City6"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input data (assuming it comes from the previous node)\nconst items = $input.all();\n\n// Filter the data to exclude rows where the country is 'USA' or 'Canada'\nconst filteredData = items.filter(item => {\n    const country = item.json.country;\n    return country !== \"United States\" && country !== \"Canada\"; // Exclude USA and Canada\n});\n\n// Return the filtered data\nreturn filteredData.map(item => ({\n    json: item.json\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        160
+      ],
+      "id": "e099bf5f-2403-4375-b88e-d2d00daeebda",
+      "name": "Filter City7"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input data (assuming it comes from the previous node)\nconst items = $input.all();\n\n// Filter the data to exclude rows where the country is 'USA' or 'Canada'\nconst filteredData = items.filter(item => {\n    const country = item.json.country;\n    return country !== \"United States\" && country !== \"Canada\"; // Exclude USA and Canada\n});\n\n// Return the filtered data\nreturn filteredData.map(item => ({\n    json: item.json\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        0
+      ],
+      "id": "038bd97e-edcd-428f-8206-70b831a50c39",
+      "name": "Filter City8"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst countryAggregation = {};\n\nitems.forEach(item => {\n    const country = item.json.country;\n    const users = parseInt(item.json.totalUsers) || 0;\n\n    if (country) {\n        countryAggregation[country] = (countryAggregation[country] || 0) + users;\n    }\n});\n\nreturn { json: { countryAggregation } };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        160
+      ],
+      "id": "1f9a67dc-a5a0-4a31-b6cd-462bb88d095b",
+      "name": "Country1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst pageLocationAggregation = {};\n\nitems.forEach(item => {\n    const page = item.json.pageLocation;\n    const users = parseInt(item.json.totalUsers) || 0;\n\n    if (page) {\n        pageLocationAggregation[page] = (pageLocationAggregation[page] || 0) + users;\n    }\n});\n\nreturn { json: { pageLocationAggregation } };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        320
+      ],
+      "id": "cc8bd40b-5fd2-4730-b132-048f80259d39",
+      "name": "Page locations1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Telegram1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Google Analytics1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Analytics2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Analytics3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Analytics4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Analytics8",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Analytics5",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Analytics7",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Analytics6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Source/Medium": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Device Category": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "New vs. Returning Users": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 6
+          }
+        ]
+      ]
+    },
+    "city": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Analytics1": {
+      "main": [
+        [
+          {
+            "node": "Filter City1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter City1": {
+      "main": [
+        [
+          {
+            "node": "Sum of users1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sum of users1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Filter City2": {
+      "main": [
+        [
+          {
+            "node": "Session Source/Medium",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Analytics2": {
+      "main": [
+        [
+          {
+            "node": "Filter City2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Analytics3": {
+      "main": [
+        [
+          {
+            "node": "Filter City3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter City3": {
+      "main": [
+        [
+          {
+            "node": "Device Category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Analytics4": {
+      "main": [
+        [
+          {
+            "node": "Filter City4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter City4": {
+      "main": [
+        [
+          {
+            "node": "New vs. Returning Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Analytics8": {
+      "main": [
+        [
+          {
+            "node": "Filter City5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter City5": {
+      "main": [
+        [
+          {
+            "node": "Hour1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Analytics6": {
+      "main": [
+        [
+          {
+            "node": "Filter City8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Analytics7": {
+      "main": [
+        [
+          {
+            "node": "Filter City7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Analytics5": {
+      "main": [
+        [
+          {
+            "node": "Filter City6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter City8": {
+      "main": [
+        [
+          {
+            "node": "city",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter City7": {
+      "main": [
+        [
+          {
+            "node": "Country1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter City6": {
+      "main": [
+        [
+          {
+            "node": "Page locations1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Country1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Page locations1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Hour1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 7
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "bb4e80e5-95f8-4a2c-a074-1f001960f63d",
+  "meta": {
+    "instanceId": "3c77398bd088a7956caeeb27d0cb0919e68ffd042e9069aabe2445875c8cda7d"
+  },
+  "id": "chxeUdIVeFVgVRUM",
+  "tags": []
+}
