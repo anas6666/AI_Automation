@@ -17,6 +17,10 @@
 
 ## Make.com
 
+### Web Scraping and Lead Extraction with Apify & Make.com
 ![image](https://github.com/user-attachments/assets/5e4011fb-3f73-46d2-bc0c-0022f71d713d)
+
+### Description:
+This automation scrapes Google search results using Apify's Google Search Scraper actor, waits briefly to ensure data is ready, then fetches the resulting dataset (up to 100 entries) in JSON format. It's ideal for generating lead lists, extracting relevant links, or researching specific topics. You can change the search query ("python" in this case) to target different keywords and collect updated leads automatically.
 
 
