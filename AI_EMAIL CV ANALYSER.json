@@ -1,0 +1,448 @@
+{
+  "name": "IA EMAIL CV ANALYSE OUTLOOK",
+  "nodes": [
+    {
+      "parameters": {
+        "fieldToSplitOut": "attachments",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "id": "2f140460-932d-491d-afc7-afc728bce0c9",
+      "name": "Split Out",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        140,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "eca68c79-4559-41ba-a486-48bde983c988",
+              "name": "attachments",
+              "value": "={{ $('Microsoft Outlook').item.binary.keys() }}",
+              "type": "array"
+            },
+            {
+              "id": "d8d07952-957a-4a02-be51-f2fbf3eada40",
+              "name": "message_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5d221174-b41a-4d06-b957-697713d42605",
+      "name": "Attachments into Array",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "359f93ba-437f-4dbc-9da7-217acfd588f4",
+              "leftValue": "={{ $('Microsoft Outlook Trigger').item.binary }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "589a48af-e48d-4dfb-bb4d-c59ca12ee2b1",
+      "name": "Filter",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        -460,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "message_id",
+              "field2": "id"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "81a509b0-3128-4e8f-9b1f-0ab0730f0cdd",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        120,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "={{ $('Merge').item.json.attachments }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        320,
+        280
+      ],
+      "id": "ae1959f8-ee56-48da-9b35-e7e024c9787f",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "= You are an HR supervisor specialized in Recruitment and Resume checking.\n I want from you to check based on the text of the resume the Top 5 best suitable jobs for the candidate resume with bullet points on why and to give 5 tips and tricks to improve the resume in all terms in French language.  \nadd this text at the end of you analysis so can clients check ou webiste and give a reviews :\n\nDécouvrez les opportunités qui vous correspondent grâce à notre analyse IA :\n🔎 Trouvez des offres d'emploi adaptées à votre profil sur IFCARJOB : https://ifcarjob.com.\n⭐ Partagez votre avis et aidez-nous à nous améliorer : https://bit.ly/3DEXZGj\n"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        540,
+        0
+      ],
+      "id": "25b34bff-dc65-4eff-b613-6348476bb11d",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d2160579-0d7d-4858-bda6-2831fddd94a2",
+              "name": "text",
+              "value": "={{ $('Basic LLM Chain').item.json.text\n    .replace(/\\n{2,}/g, '<br><br>') // Replace double newlines with <br><br> for paragraph separation\n    .replace(/\\n/g, '<br>') // Replace single newlines with <br> to keep lists structured\n    .replace(/\\*\\*(.*?)\\*\\*/g, '<b>$1</b>') // Convert markdown bold **text** into <b>text</b>\n    .replace(/---/g, '<hr>') // Replace markdown divider --- with <hr> for a proper section break\n    .replace(/##/g, '🔥') // Corrected: replace occurrences of \"###\" with \"🔥\"\n    .trim()\n}}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        860,
+        0
+      ],
+      "id": "48f4e80d-787d-49af-8528-793aaafa3eae",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-1.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        620,
+        200
+      ],
+      "id": "3dc41244-f7fe-4da1-82e6-227ddf6324d3",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "T1pqFMC445SEiDYz",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "hasAttachments": true
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlookTrigger",
+      "typeVersion": 1,
+      "position": [
+        -660,
+        180
+      ],
+      "id": "6475bcb6-a21b-4e7e-9e5b-cd01c5f36262",
+      "name": "Microsoft Outlook Trigger",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "r2vF4iYhfXPJaiDJ",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": {
+          "__rl": true,
+          "value": "={{ $('Microsoft Outlook').item.json.id }}",
+          "mode": "id"
+        },
+        "message": "={{ $json.text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        1060,
+        220
+      ],
+      "id": "c3f443b9-4c39-472a-a0b7-05e51b48f412",
+      "name": "Microsoft Outlook2",
+      "webhookId": "a686ce79-9681-4497-8262-6a4bf1ef6598",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "r2vF4iYhfXPJaiDJ",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "={{ 'attachment_0' }}",
+        "name": "=",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1HxdIGvlsyEp_3YT0K5MT_EuRP1zKOfNT",
+          "mode": "list",
+          "cachedResultName": "gg",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1HxdIGvlsyEp_3YT0K5MT_EuRP1zKOfNT"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -80,
+        400
+      ],
+      "id": "b367ef7b-1cbf-4650-ba9e-f5a588728cce",
+      "name": "Google Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "eDIEQUNBlL8i0hM4",
+          "name": "Google Drive account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        -280,
+        160
+      ],
+      "id": "e4b58643-6911-4ba9-92fd-d28719832d3f",
+      "name": "Microsoft Outlook",
+      "webhookId": "905e2c8e-6d0a-471b-b168-7b968d7660a4",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "r2vF4iYhfXPJaiDJ",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attachments into Array": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Microsoft Outlook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Microsoft Outlook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Microsoft Outlook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Microsoft Outlook2": {
+      "main": [
+        []
+      ]
+    },
+    "Google Drive": {
+      "main": [
+        []
+      ]
+    },
+    "Microsoft Outlook": {
+      "main": [
+        [
+          {
+            "node": "Attachments into Array",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "be39727a-286a-498c-9c3e-222e1fa4d0c2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "724d2aec64e2825b820c4cfa64f80eb5dec14f10d6f17d073c9e90a0a4916cce"
+  },
+  "id": "cZYTDzc4ZyIIUosO",
+  "tags": []
+}
