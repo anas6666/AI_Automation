@@ -34,6 +34,13 @@ Fetches yesterday's Google Analytics data (users, location, device, source, etc.
 ### Description :
 Monitors a Microsoft Outlook inbox for emails with PDF attachments. Extracts text from the CV. Uses AI to generate an analysis including suggested jobs and improvement tips. Formats the analysis using basic HTML and sends it as an email reply to the sender. Also uploads the original CV attachment to Google Drive.
 
+## Assertiveness Assessment & Report Generation (Test Orientation)
+![image](https://github.com/user-attachments/assets/6028f7a6-85fa-48ec-8413-19ca0f1db274)
+
+### Description :
+his n8n workflow automates the analysis of assertiveness questionnaire responses. It takes input from a webhook, uses a language model to evaluate the responses and generate a personality profile, creates a pie chart visualization, and produces a styled .doc report with analysis, and stores all generated content in Google Drive.
+
+
 
 # Make.com
 
