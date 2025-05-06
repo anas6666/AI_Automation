@@ -1,0 +1,490 @@
+{
+  "name": "TEST ORIENATATION",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "4c63983c-f640-4c8c-a531-b82f2159e2fb",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -860,
+        -60
+      ],
+      "id": "a4f887a0-3fa9-42c1-9768-b01f5d36d550",
+      "name": "Webhook",
+      "webhookId": "4c63983c-f640-4c8c-a531-b82f2159e2fb"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tu es un assistant spécialisé dans l’évaluation de l'assertivité des candidats.\n\nJe vais te fournir une série de réponses à un questionnaire de 60 affirmations (réponses \"Plutôt VRAI\" ou \"Plutôt FAUX\").\n\nTon objectif :\n\n1. Compter le nombre de réponses \"Plutôt VRAI\" pour chaque groupe selon la table suivante :\n   - Conciliant = (1, 7, 15, 16, 17, 25, 26, 35, 36, 37)\n   - Dur = (4, 6, 10, 11, 20, 21, 28, 29, 30, 39)\n   - Joueur = (3, 5, 9, 12, 13, 19, 22, 31, 32, 41)\n   - Assertif = (2, 8, 14, 18, 23, 24, 27, 33, 34, 38)\n\n2. Attribuer 1 point pour chaque réponse \"Plutôt VRAI\" et 0 pour \"Plutôt FAUX\".\n\n3. Calculer le **total de points obtenus** (somme de tous les \"VRAI\").\n\n4. Calculer le **pourcentage** de chaque groupe avec la formule :\n   (Score du groupe / Total des points) × 100\n\n5. Arrondir les pourcentages de manière à ce qu’ils totalisent exactement **100%** (ajuste légèrement si nécessaire).\n\n6. Identifier le **profil principal** (le groupe avec le pourcentage le plus élevé).\n\n7. Fournir une **interprétation brève** du profil principal (5 à 8 phrases maximum).\n\n8. Ne pas afficher les réponses individuelles, ni de contenu hors structure.\n\n9. Structure attendue de la réponse :\n\n---\n\n**Pourcentages :**\n\n* Assertif: XX%  \n* Joueur: XX%  \n* Dur: XX%  \n* Conciliant: XX%\n\n**Profil Principal :**  \nNom du profil dominant ici\n\n**Interprétation (basée sur cet extrait limité) :**\n\nTexte d’interprétation ici (5 à 8 phrases maximum, clair, synthétique et nuancé).\n\n---\n\n**Données du candidat :**\n\nLes questions et réponses (format : `{{ $json.submissions.map(sub => sub.question + \" => \" + sub.candidate_answer).join(\"\\n\") }}`) seront analysées à partir de cette structure.\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        -40,
+        -60
+      ],
+      "id": "cb0eabd5-c943-441a-a7b8-576227e3a338",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -100,
+        140
+      ],
+      "id": "01b5c638-99c6-418c-84b3-931ab8301048",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "pBSBUX3lA16XeC6L",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ad82e78a-d304-4b38-bc65-0df442ca897a",
+              "name": "submissions",
+              "value": "={{ $json.data }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -260,
+        -60
+      ],
+      "id": "f11dcafa-a6a1-411b-b01f-8e63a23b5c85",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "body.submissions",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -680,
+        -60
+      ],
+      "id": "8b5316b1-0600-44c6-8db3-e71323701f2d",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        -60
+      ],
+      "id": "fbe44554-23cd-4425-96cd-4d1b0343132c",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "chartType": "pie",
+        "labelsUi": {
+          "labelsValues": [
+            {
+              "label": "={{ $('Code').item.json.labels }}"
+            }
+          ]
+        },
+        "data": "={{ $('Code').item.json.data }}",
+        "chartOptions": {},
+        "datasetOptions": {}
+      },
+      "type": "n8n-nodes-base.quickChart",
+      "typeVersion": 1,
+      "position": [
+        920,
+        -60
+      ],
+      "id": "c157d17d-fcfc-41e8-b111-51ab279384d0",
+      "name": "QuickChart"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Extract only the lable snad the pourcentage in this  :\n {{ $json.response.text }}\n\n\nExample of the outpout : \nAssertif: % \nJoueur:%\nDur: %\nConciliant:%"
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        320,
+        -60
+      ],
+      "id": "ece7b0d8-1fd9-4f0a-948c-e054d46620c3",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        260,
+        140
+      ],
+      "id": "d68ebe68-bab4-4b40-a618-9a11b523166a",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "pBSBUX3lA16XeC6L",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input from the previous node\nconst input =  $input.first().json.response.text// Replace 'yourFieldName' with the actual field name from the previous node\n\n// Split the input string into lines\nconst lines = input.split(\"\\n\");\n\n// Initialize arrays for labels and data\nlet labels = [];\nlet data = [];\n\n// Loop through each line and extract the label and percentage\nlines.forEach(line => {\n    const parts = line.split(\": \");\n    const label = parts[0];\n    const value = parseFloat(parts[1].replace('%', ''));\n\n    labels.push(label);\n    data.push(value);\n});\n\n// Return the JSON objects in the output\nreturn [\n  {\n    json: {\n      labels: labels,\n      data: data\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        -60
+      ],
+      "id": "c2ed9321-91bc-400d-a554-d96f07a6fb7e",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "content": "## Getting the Data / Labeles",
+        "height": 200,
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        300,
+        -140
+      ],
+      "id": "3de3d30e-5d65-4d9f-b0c7-36120cbea76b",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Getting Comments",
+        "height": 200,
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -140
+      ],
+      "id": "cd23a854-a73d-424e-8d32-9725acc93dbe",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "=data",
+        "name": "={{ $('Webhook').item.json.body.userDetails.name }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1qYI1QcA7KwVv26Aa27Kl1OgrG2OHkenB",
+          "mode": "list",
+          "cachedResultName": "Graph",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1qYI1QcA7KwVv26Aa27Kl1OgrG2OHkenB"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1080,
+        -60
+      ],
+      "id": "845b6667-4f8a-44d1-8631-906c1a900f6c",
+      "name": "Google Drive2",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "krNaNCPQs2TRhfzg",
+          "name": "Google Drive account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1240,
+        -60
+      ],
+      "id": "a6b3d2fd-52a3-4aab-8ab5-b730e8c7e8e2",
+      "name": "Google Drive3",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "krNaNCPQs2TRhfzg",
+          "name": "Google Drive account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get data from previous nodes\nconst userDetails = $node[\"Webhook\"].json.body.userDetails;\nconst fileId      = $node[\"Google Drive3\"].json.id;\nconst comment     = $node[\"Code1\"].json.interpretation;\nconst labels      = $node[\"Code\"].json.labels;   // e.g. [\"Assertif\",\"Joueur\",\"Dur\",\"Conciliant\"]\nconst pourcents   = $node[\"Code\"].json.data;     // e.g. [20,30,40,10]\nconst today       = new Date().toLocaleDateString(\"fr-FR\");\nconst imageUrl    = `https://drive.google.com/uc?export=view&id=${fileId}`;\n\n// ***IMPORTANT:*** Replace these with the *actual* dimensions of your image\nconst originalImageWidth  = 800;\nconst originalImageHeight = 600;\n\n// ***ADJUST THESE VALUES to control the image size in the Word document.***\nconst targetImageWidth  = 600;\nconst targetImageHeight = (targetImageWidth / originalImageWidth) * originalImageHeight;\n\n// Build the <li> elements dynamically\nconst itemsHtml = labels\n  .map((lbl, i) => `<li><span class=\"bold\">${lbl}:</span> ${pourcents[i]}%</li>`)\n  .join(\"\\n\");\n\n// Determine the “Profil Principal” (label with highest percentage)\nconst maxIndex       = pourcents.indexOf(Math.max(...pourcents));\nconst profilPrincipal = labels[maxIndex];\n\n// Build HTML content with CSS styling\nconst content = `\n<html>\n  <head>\n    <meta charset=\"utf-8\">\n    <style>\n      body {\n        font-family: Arial, sans-serif;\n        margin: 0; padding: 0;\n        background-color: #f4f4f9;\n        text-align: center;\n      }\n      h1, h2 { color: #333; }\n      p      { color: #555; font-size: 16px; line-height: 1.6; }\n      .container {\n        max-width: 800px; margin: 0 auto; padding: 20px;\n        background: white; border-radius: 8px;\n        box-shadow: 0 4px 8px rgba(0,0,0,0.1);\n        text-align: left;\n      }\n      .comment {\n        margin-top: 30px; text-align: left;\n        font-size: 14px; color: #333; line-height: 1.5;\n      }\n      .bold    { font-weight: bold; }\n      .italic  { font-style: italic; }\n      .graph-container {\n        margin-top: 20px; text-align: center;\n      }\n      .graph-container img {\n        height: auto; display: block;\n        margin-left: auto; margin-right: auto;\n      }\n    </style>\n  </head>\n  <body>\n    <div class=\"container\">\n      <h1>Test d'Orientation</h1>\n      <h2>${userDetails.name}</h2>\n      <p>Date : ${today}</p>\n      <p>Email : ${userDetails.email}</p>\n      <p>Téléphone : ${userDetails.phone}</p>\n\n      <div class=\"comment\">\n        <h2>Commentaire</h2>\n        <p><span class=\"bold\">Voici l'analyse de l'assertivité du candidat :</span></p>\n        <p><span class=\"italic\">Pourcentages :</span></p>\n        <ul>\n          ${itemsHtml}\n        </ul>\n        <p><span class=\"bold\">Profil Principal :</span> ${profilPrincipal}</p>\n        <p><span class=\"bold\">Interprétation :</span> ${comment}</p>\n      </div>\n\n      <div class=\"graph-container\">\n        <h2>Graph</h2>\n        <img\n          src=\"${imageUrl}\"\n          alt=\"Graphique\"\n          width=\"${targetImageWidth}\"\n          height=\"${targetImageHeight}\"\n        />\n      </div>\n    </div>\n  </body>\n</html>\n`;\n\n// Encode as Word (.doc) file\nconst buffer = Buffer.from(\"\\ufeff\" + content, \"utf-8\");\n\nreturn [\n  {\n    json: {\n      filename: `Test_Orientation_${userDetails.name}.doc`,\n      mimeType: \"application/msword\",\n    },\n    binary: {\n      data: {\n        data: buffer.toString(\"base64\"),\n        mimeType: \"application/msword\",\n        fileName: `Test_Orientation_${userDetails.name}.doc`,\n      },\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        -60
+      ],
+      "id": "03f6a328-c621-4d36-86e9-3b50f79aecb8",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fullText = $('Basic LLM Chain').first().json.response.text;\n\n// Use regex to extract text after \"**Interprétation ... **\"\nconst match = fullText.match(/\\*\\*Interprétation[^\\*]*\\*\\*[\\n]*([\\s\\S]*)/);\n\nconst interpretationText = match ? match[1].trim() : \"\";\n\nreturn [\n  {\n    interpretation: interpretationText\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        -60
+      ],
+      "id": "53d87643-6a66-485d-89f7-0b51f1f08af0",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "name": "={{ $json.filename }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "10AobUX3ypdat13mEKKx-k0pA9WItApiY",
+          "mode": "list",
+          "cachedResultName": "TEST ORIENTATAION",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/10AobUX3ypdat13mEKKx-k0pA9WItApiY"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1640,
+        -60
+      ],
+      "id": "71a4f318-4efb-4228-aa66-c6781be5df90",
+      "name": "Google Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "krNaNCPQs2TRhfzg",
+          "name": "Google Drive account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "QuickChart": {
+      "main": [
+        [
+          {
+            "node": "Google Drive2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive2": {
+      "main": [
+        [
+          {
+            "node": "Google Drive3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive3": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "QuickChart",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f1a21bc5-0da3-496a-80f3-ebd31b07f7f2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8824187547ff10c60f54891e29e3af4867384d8a7938d55cda1e48b737d76fc2"
+  },
+  "id": "ivtjIslq16ClbxTR",
+  "tags": []
+}
